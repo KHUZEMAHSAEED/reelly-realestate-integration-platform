@@ -81,8 +81,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
       {/* Cover Image & Badges */}
       <div style={{ position: 'relative', height: '220px', overflow: 'hidden' }}>
         <img
-          src={project.photos[0]?.url || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80'}
-          alt={project.name}
+          src={project.photos?.[0]?.url || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80'}
+          alt={project.name || 'Luxury Property'}
           style={{
             width: '100%',
             height: '100%',
@@ -153,15 +153,15 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               backdropFilter: 'blur(6px)'
             }}>
               <MapPin size={12} />
-              {project.district ? `${project.district}, ${project.region}` : project.region}
+              {project.district ? `${project.district}, ${project.region || 'UAE'}` : (project.region || 'UAE')}
             </div>
           </div>
 
-          {project.developer.logo_url && (
+          {project.developer?.logo_url && (
             <img
               src={project.developer.logo_url}
-              alt={project.developer.name}
-              title={project.developer.name}
+              alt={project.developer.name || 'Developer'}
+              title={project.developer.name || 'Developer'}
               style={{
                 width: '32px',
                 height: '32px',
@@ -179,7 +179,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
       <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flex: 1, gap: '10px' }}>
         <div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            {project.developer.name}
+            {project.developer?.name || 'Exclusive Developer'}
           </div>
           <h3 className="font-serif" style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginTop: '3px', lineHeight: 1.3 }}>
             {project.name}

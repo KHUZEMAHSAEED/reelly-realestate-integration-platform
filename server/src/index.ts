@@ -1,10 +1,17 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { reellyClient } from './reellyClient.js';
 import { BitrixDealContext } from './types.js';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const envPath = path.resolve(__dirname, '../.env');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -87,13 +94,49 @@ app.get('/api/settings/reelly-key', (_req: Request, res: Response) => {
 
 app.post('/api/settings/reelly-key', (req: Request, res: Response) => {
   const { apiKey } = req.body;
-  if (!apiKey || typeof apiKey !== 'string') {
+  if (apiKey === undefined || apiKey === null || typeof apiKey !== 'string') {
     return res.status(400).json({ error: 'Valid apiKey string is required' });
   }
-  reellyClient.setApiKey(apiKey.trim());
+  const cleanKey = apiKey.trim();
+  reellyClient.setApiKey(cleanKey);
+
+  // Persist to server/.env so it survives server restarts
+  try {
+    let content = '';
+    if (fs.existsSync(envPath)) {
+      content = fs.readFileSync(envPath, 'utf-8');
+    }
+    if (content.includes('REELYY_API_KEY=')) {
+      content = content.replace(/REELYY_API_KEY=.*/g, `REELYY_API_KEY=${cleanKey}`);
+    } else {
+      content += `\nREELYY_API_KEY=${cleanKey}\n`;
+    }
+    fs.writeFileSync(envPath, content, 'utf-8');
+  } catch (e) {
+    console.warn('[Settings] Failed to persist key to server/.env:', e);
+  }
+
   res.json({
     success: true,
-    message: 'API Key successfully updated for Reelly API v2.0 engine',
+    message: cleanKey ? 'API Key successfully updated for Reelly API v2.0 engine and persisted to server/.env' : 'API Key cleared. Engine running in Offline Mock Mode.',
+    status: reellyClient.getApiKeyStatus()
+  });
+});
+
+app.delete('/api/settings/reelly-key', (_req: Request, res: Response) => {
+  reellyClient.setApiKey('');
+  try {
+    if (fs.existsSync(envPath)) {
+      let content = fs.readFileSync(envPath, 'utf-8');
+      content = content.replace(/REELYY_API_KEY=.*/g, 'REELYY_API_KEY=');
+      fs.writeFileSync(envPath, content, 'utf-8');
+    }
+  } catch (e) {
+    console.warn('[Settings] Failed to clear key in server/.env:', e);
+  }
+  res.json({
+    success: true,
+    message: 'API Key cleared. Reverted to high-fidelity Offline Mock Mode.',
     status: reellyClient.getApiKeyStatus()
   });
 });

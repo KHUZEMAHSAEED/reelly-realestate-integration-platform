@@ -66,7 +66,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
     }
   };
 
-  const photos = project.photos.length > 0
+  const photos = (project.photos && project.photos.length > 0)
     ? project.photos
     : [{ url: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=85' }];
 
@@ -210,7 +210,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
             <div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Developer</div>
               <div style={{ fontSize: '16px', fontWeight: 600, color: '#fff', marginTop: '4px' }}>
-                {project.developer.name}
+                {project.developer?.name || 'Exclusive Developer'}
               </div>
             </div>
 

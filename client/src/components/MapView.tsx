@@ -87,13 +87,13 @@ export const MapView: React.FC<MapViewProps> = ({
               <Popup>
                 <div style={{ width: '250px', overflow: 'hidden', borderRadius: '10px' }}>
                   <img
-                    src={p.photos[0]?.url || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=400&q=80'}
-                    alt={p.name}
+                    src={p.photos?.[0]?.url || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=400&q=80'}
+                    alt={p.name || 'Luxury Property'}
                     style={{ width: '100%', height: '130px', objectFit: 'cover' }}
                   />
                   <div style={{ padding: '12px' }}>
                     <div style={{ fontSize: '10px', color: 'var(--gold-light)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      {p.developer.name}
+                      {p.developer?.name || 'Exclusive Developer'}
                     </div>
                     <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginTop: '2px' }}>
                       {p.name}

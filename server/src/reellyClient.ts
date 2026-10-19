@@ -2,7 +2,9 @@ import {
   ReellyProject,
   ReellyDeveloper,
   ReellyProjectMarker,
-  ReellyPagination
+  ReellyPagination,
+  ReellyMediaItem,
+  ReellyUnitType
 } from './types.js';
 import {
   MOCK_PROJECTS,
@@ -32,14 +34,14 @@ export class ReellyClient {
   }
 
   public setApiKey(key: string) {
-    this.apiKey = key;
+    this.apiKey = key || null;
     this.cache.clear(); // flush cache on key update
   }
 
   public getApiKeyStatus(): { isConfigured: boolean; maskedKey: string | null } {
     if (!this.apiKey) return { isConfigured: false, maskedKey: null };
-    const masked = this.apiKey.length > 8
-      ? `${this.apiKey.substring(0, 4)}...${this.apiKey.substring(this.apiKey.length - 4)}`
+    const masked = this.apiKey.length > 12
+      ? `${this.apiKey.substring(0, 6)}...${this.apiKey.substring(this.apiKey.length - 6)}`
       : '****';
     return { isConfigured: true, maskedKey: masked };
   }
@@ -87,6 +89,98 @@ export class ReellyClient {
     }
 
     return await response.json() as T;
+  }
+
+  private normalizeProject(raw: any): ReellyProject {
+    if (!raw) return raw;
+    if (raw.price_from !== undefined && raw.photos !== undefined && Array.isArray(raw.photos)) {
+      return raw;
+    }
+
+    const devName = typeof raw.developer === 'string'
+      ? raw.developer
+      : (raw.developer?.name || raw.brand || 'Exclusive Developer');
+
+    const devLogo = typeof raw.developer === 'object'
+      ? (raw.developer?.logo?.url || raw.developer?.logo_url)
+      : undefined;
+
+    const lat = raw.latitude ?? raw.location?.latitude ?? 25.19;
+    const lng = raw.longitude ?? raw.location?.longitude ?? 55.27;
+    const district = raw.district ?? raw.location?.district ?? raw.location?.sector ?? raw.location?.region ?? 'Dubai';
+    const region = raw.region ?? raw.location?.region ?? 'Dubai';
+    const country = raw.country ?? raw.location?.country ?? 'United Arab Emirates';
+
+    const photos: ReellyMediaItem[] = [];
+    if (Array.isArray(raw.photos) && raw.photos.length > 0) {
+      photos.push(...raw.photos);
+    } else if (raw.cover_image?.url) {
+      photos.push({ url: raw.cover_image.url, metadata: raw.cover_image.metadata });
+    }
+
+    let unitTypes: ReellyUnitType[] = [];
+    if (Array.isArray(raw.unit_types) && raw.unit_types.length > 0) {
+      unitTypes = raw.unit_types;
+    } else if (Array.isArray(raw.available_unit_types_display)) {
+      unitTypes = raw.available_unit_types_display.map((u: string, idx: number) => ({
+        id: `unit-${raw.id}-${idx}`,
+        name: u,
+        bedrooms: raw.min_bedrooms || undefined,
+        area_sqft: raw.min_size ? Math.round(raw.min_size) : undefined,
+        price_from: raw.min_price || undefined,
+        currency: raw.price_currency || 'AED'
+      }));
+    }
+
+    return {
+      id: raw.id,
+      name: raw.name,
+      developer: {
+        id: typeof raw.developer === 'object' ? (raw.developer?.id || raw.id) : raw.id,
+        name: devName,
+        logo_url: devLogo
+      },
+      country: typeof country === 'string' ? country : 'United Arab Emirates',
+      region: typeof region === 'string' ? region : 'Dubai',
+      district: typeof district === 'string' ? district : 'Dubai',
+      status: raw.construction_status_display || raw.construction_status || raw.status || 'Under Construction',
+      sale_status: raw.sale_status_display || raw.sale_status || 'Active',
+      latitude: Number(lat),
+      longitude: Number(lng),
+      price_from: raw.price_from ?? (raw.min_price ? Math.round(raw.min_price) : 0),
+      currency: raw.currency || raw.price_currency || 'AED',
+      handover_date: raw.handover_date || raw.completion_date || (raw.completion_datetime ? raw.completion_datetime.substring(0, 10) : undefined),
+      floors: raw.floors || raw.building_count || undefined,
+      overview: raw.overview || raw.short_description || `Luxury off-plan residential development in ${district} crafted by ${devName}.`,
+      photos: photos.length > 0 ? photos : [{ url: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=85' }],
+      amenities: raw.amenities || ['Luxury Pool', 'Fitness Club', '24/7 Security & Concierge', 'Prime Waterfront Location'],
+      unit_types: unitTypes
+    };
+  }
+
+  private normalizeMarker(raw: any): ReellyProjectMarker {
+    if (!raw) return raw;
+    if (raw.price_from !== undefined && raw.latitude !== undefined && raw.developer_name !== undefined) {
+      return raw;
+    }
+
+    const devName = typeof raw.developer === 'string'
+      ? raw.developer
+      : (raw.developer?.name || raw.developer_name || 'Exclusive Developer');
+
+    return {
+      id: raw.id,
+      name: raw.name,
+      latitude: Number(raw.latitude ?? raw.location?.latitude ?? 25.19),
+      longitude: Number(raw.longitude ?? raw.location?.longitude ?? 55.27),
+      price_from: raw.price_from ?? (raw.min_price ? Math.round(raw.min_price) : 0),
+      currency: raw.currency ?? raw.price_currency ?? 'AED',
+      developer_name: devName,
+      district: raw.district ?? raw.location?.district ?? raw.location?.sector ?? raw.location?.region ?? 'Dubai',
+      cover_url: raw.cover_url ?? raw.cover_image?.url,
+      sale_status: raw.sale_status_display ?? raw.sale_status ?? 'Active',
+      units_count: raw.units_count ?? 4
+    };
   }
 
   public async getCountries(language: string = 'en-us') {
@@ -191,9 +285,19 @@ export class ReellyClient {
     if (cached) return cached;
 
     try {
-      const live = await this.fetchUpstream<ReellyPagination<ReellyProject>>('/projects', params);
-      this.setCache(cacheKey, live, 300);
-      return live;
+      const live = await this.fetchUpstream<any>('/projects', params);
+      if (live && Array.isArray(live.results)) {
+        const normalizedResults = live.results.map((r: any) => this.normalizeProject(r));
+        const res: ReellyPagination<ReellyProject> = {
+          count: live.count || normalizedResults.length,
+          next: live.next,
+          previous: live.previous,
+          results: normalizedResults
+        };
+        this.setCache(cacheKey, res, 300);
+        return res;
+      }
+      throw new Error('INVALID_LIVE_PROJECTS_FORMAT');
     } catch {
       // High-performance filter over mock data
       let filtered = [...MOCK_PROJECTS];
@@ -243,9 +347,13 @@ export class ReellyClient {
     if (cached) return cached;
 
     try {
-      const live = await this.fetchUpstream<ReellyProject>(`/projects/${id}`, { language });
-      this.setCache(cacheKey, live, 600);
-      return live;
+      const live = await this.fetchUpstream<any>(`/projects/${id}`, { language });
+      if (live) {
+        const normalized = this.normalizeProject(live);
+        this.setCache(cacheKey, normalized, 600);
+        return normalized;
+      }
+      return null;
     } catch {
       const mock = MOCK_PROJECTS.find(p => String(p.id) === String(id));
       return mock || null;
@@ -258,9 +366,19 @@ export class ReellyClient {
     if (cached) return cached;
 
     try {
-      const live = await this.fetchUpstream<ReellyPagination<ReellyProjectMarker>>('/projects/markers', params);
-      this.setCache(cacheKey, live, 900);
-      return live;
+      const live = await this.fetchUpstream<any>('/projects/markers', params);
+      if (live && Array.isArray(live.results)) {
+        const normalized = live.results.map((r: any) => this.normalizeMarker(r));
+        const res: ReellyPagination<ReellyProjectMarker> = {
+          count: live.count || normalized.length,
+          next: live.next,
+          previous: live.previous,
+          results: normalized
+        };
+        this.setCache(cacheKey, res, 900);
+        return res;
+      }
+      throw new Error('INVALID_MARKERS_FORMAT');
     } catch {
       return {
         count: MOCK_PROJECT_MARKERS.length,
@@ -277,9 +395,27 @@ export class ReellyClient {
     if (cached) return cached;
 
     try {
-      const live = await this.fetchUpstream<ReellyPagination<ReellyDeveloper>>('/developers', params);
-      this.setCache(cacheKey, live, 1800);
-      return live;
+      const live = await this.fetchUpstream<any>('/developers', params);
+      if (live && Array.isArray(live.results)) {
+        const normalized: ReellyDeveloper[] = live.results.map((d: any) => ({
+          id: d.id,
+          name: d.name,
+          logo_url: d.logo?.url || d.logo_url,
+          description: d.description,
+          projects_count: d.projects_count,
+          active_projects: d.active_projects,
+          established_year: d.established_year
+        }));
+        const res: ReellyPagination<ReellyDeveloper> = {
+          count: live.count || normalized.length,
+          next: live.next,
+          previous: live.previous,
+          results: normalized
+        };
+        this.setCache(cacheKey, res, 1800);
+        return res;
+      }
+      throw new Error('INVALID_DEVELOPERS_FORMAT');
     } catch {
       return {
         count: MOCK_DEVELOPERS.length,
@@ -299,7 +435,10 @@ export class ReellyClient {
     try {
       const url = `${this.baseUrl.replace(/\/+$/, '')}/projects?limit=1`;
       const res = await fetch(url, {
-        headers: { 'X-API-Key': testKey }
+        headers: {
+          'Accept': 'application/json',
+          'X-API-Key': testKey
+        }
       });
 
       if (!res.ok) {

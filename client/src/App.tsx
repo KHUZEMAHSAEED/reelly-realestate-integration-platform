@@ -102,21 +102,21 @@ export function App() {
       // Search
       if (filters.search) {
         const q = filters.search.toLowerCase();
-        const matchesName = p.name.toLowerCase().includes(q);
-        const matchesDev = p.developer.name.toLowerCase().includes(q);
+        const matchesName = p.name ? p.name.toLowerCase().includes(q) : false;
+        const matchesDev = p.developer?.name ? p.developer.name.toLowerCase().includes(q) : false;
         const matchesDist = p.district ? p.district.toLowerCase().includes(q) : false;
         if (!matchesName && !matchesDev && !matchesDist) return false;
       }
       // Developer
-      if (filters.developer && p.developer.name.toLowerCase() !== filters.developer.toLowerCase()) {
+      if (filters.developer && p.developer?.name?.toLowerCase() !== filters.developer.toLowerCase()) {
         return false;
       }
       // Status
-      if (filters.status && p.status.toLowerCase() !== filters.status.toLowerCase()) {
+      if (filters.status && p.status?.toLowerCase() !== filters.status.toLowerCase()) {
         return false;
       }
       // Region
-      if (filters.region && p.region.toLowerCase() !== filters.region.toLowerCase()) {
+      if (filters.region && p.region?.toLowerCase() !== filters.region.toLowerCase()) {
         return false;
       }
       // Price
@@ -125,12 +125,12 @@ export function App() {
       }
       // Quick tags
       if (filters.quickTag === 'waterfront') {
-        const text = `${p.name} ${p.district} ${p.overview}`.toLowerCase();
+        const text = `${p.name || ''} ${p.district || ''} ${p.overview || ''}`.toLowerCase();
         if (!text.includes('harbour') && !text.includes('marina') && !text.includes('waterfront') && !text.includes('bay') && !text.includes('sea')) {
           return false;
         }
       } else if (filters.quickTag === 'branded') {
-        const text = `${p.name} ${p.overview}`.toLowerCase();
+        const text = `${p.name || ''} ${p.overview || ''}`.toLowerCase();
         if (!text.includes('bugatti') && !text.includes('bvlgari') && !text.includes('dorchester')) {
           return false;
         }
