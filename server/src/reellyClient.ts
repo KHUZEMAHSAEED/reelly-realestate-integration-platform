@@ -29,8 +29,26 @@ export class ReellyClient {
   private cache = new Map<string, CacheEntry<any>>();
 
   constructor() {
-    this.baseUrl = process.env.REELYY_API_BASE_URL || 'https://api-reelly.up.railway.app/api/v2/clients';
+    const rawUrl = process.env.REELYY_API_BASE_URL || 'https://api-reelly.up.railway.app/api/v2/clients';
+    this.baseUrl = this.sanitizeBaseUrl(rawUrl);
     this.apiKey = process.env.REELYY_API_KEY || null;
+  }
+
+  private sanitizeBaseUrl(url: string): string {
+    try {
+      const parsed = new URL(url);
+      // Enforce HTTPS in production and block cloud metadata/internal SSRF ranges
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+        return 'https://api-reelly.up.railway.app/api/v2/clients';
+      }
+      if (parsed.hostname.startsWith('169.254.') || parsed.hostname === 'metadata.google.internal' || parsed.hostname === 'instance-data') {
+        console.warn('[Security] Blocked metadata SSRF target in REELYY_API_BASE_URL. Reverting to safe default.');
+        return 'https://api-reelly.up.railway.app/api/v2/clients';
+      }
+      return url;
+    } catch {
+      return 'https://api-reelly.up.railway.app/api/v2/clients';
+    }
   }
 
   public setApiKey(key: string) {
