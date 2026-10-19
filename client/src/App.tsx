@@ -8,6 +8,8 @@ import { MapView } from './components/MapView';
 import { ProjectModal } from './components/ProjectModal';
 import { SettingsModal } from './components/SettingsModal';
 import { BitrixTimelineModal } from './components/BitrixTimelineModal';
+import { SkeletonCard } from './components/SkeletonCard';
+import { EmptyState } from './components/EmptyState';
 import type {
   Currency,
   ViewMode,
@@ -16,10 +18,7 @@ import type {
   BitrixDealContext
 } from './types';
 import { api } from './services/api';
-import {
-  RefreshCw,
-  CheckCircle2
-} from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 
 export function App() {
   // Query param detection for Bitrix iframe / embedded mode
@@ -60,6 +59,17 @@ export function App() {
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 4000);
+  };
+
+  const handleResetFilters = () => {
+    setFilters({
+      search: '',
+      developer: '',
+      status: '',
+      region: '',
+      maxPrice: 100000000,
+      quickTag: ''
+    });
   };
 
   // Load Initial Data
@@ -181,7 +191,14 @@ export function App() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-primary)' }}>
+    <div style={{
+      height: '100vh',
+      width: '100vw',
+      display: 'flex',
+      flexDirection: 'column',
+      backgroundColor: 'var(--bg-primary)',
+      overflow: 'hidden'
+    }}>
       {/* Toast Notification */}
       {toast && (
         <div style={{
@@ -240,32 +257,36 @@ export function App() {
         totalCount={filteredProjects.length}
       />
 
-      {/* Main View Area */}
-      <main style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden' }}>
+      {/* Main View Area - Full Flex Containment (No Double Scrollbars) */}
+      <main style={{ flex: 1, minHeight: 0, display: 'flex', position: 'relative', overflow: 'hidden' }}>
         {loading ? (
           <div style={{
             flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '16px',
-            color: 'var(--gold-light)'
+            height: '100%',
+            overflowY: 'auto',
+            padding: '24px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+            gap: '24px',
+            alignContent: 'start'
           }}>
-            <RefreshCw size={36} className="animate-spin" />
-            <div className="font-serif" style={{ fontSize: '18px', letterSpacing: '0.08em' }}>
-              Loading Luxury Portfolios...
-            </div>
+            {[1, 2, 3, 4, 5, 6].map(n => (
+              <SkeletonCard key={n} />
+            ))}
           </div>
+        ) : filteredProjects.length === 0 ? (
+          <EmptyState onReset={handleResetFilters} searchQuery={filters.search} />
         ) : (
           <>
             {/* View Mode 1: Split View (Map on Right, Scrollable Cards on Left) */}
             {viewMode === 'split' && (
-              <div style={{ flex: 1, display: 'flex', height: 'calc(100vh - 170px)' }}>
+              <div style={{ flex: 1, height: '100%', minHeight: 0, display: 'flex' }}>
                 {/* Scrollable Project Cards List */}
                 <div style={{
                   width: '520px',
                   maxWidth: '100%',
+                  height: '100%',
+                  minHeight: 0,
                   overflowY: 'auto',
                   padding: '20px',
                   display: 'flex',
@@ -294,7 +315,7 @@ export function App() {
                 </div>
 
                 {/* Interactive Leaflet Map */}
-                <div style={{ flex: 1, height: '100%' }}>
+                <div style={{ flex: 1, height: '100%', minHeight: 0 }}>
                   <MapView
                     projects={filteredProjects}
                     selectedProject={selectedProject}
@@ -310,6 +331,8 @@ export function App() {
             {viewMode === 'grid' && (
               <div style={{
                 flex: 1,
+                height: '100%',
+                minHeight: 0,
                 overflowY: 'auto',
                 padding: '28px',
                 display: 'grid',
@@ -340,7 +363,7 @@ export function App() {
 
             {/* View Mode 3: Map Only View */}
             {viewMode === 'map' && (
-              <div style={{ flex: 1, height: 'calc(100vh - 170px)' }}>
+              <div style={{ flex: 1, height: '100%', minHeight: 0 }}>
                 <MapView
                   projects={filteredProjects}
                   selectedProject={selectedProject}

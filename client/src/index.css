@@ -269,3 +269,39 @@ body {
 .leaflet-control-zoom a:hover {
   background: #2a314b !important;
 }
+
+/* Tabular Numerics for Financial & Metric Consistency */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Card Micro-Interactions & Hover Polish */
+.property-card {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.property-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-gold-bright) !important;
+  box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.7), 0 0 24px -4px var(--gold-glow) !important;
+}
+.property-card:hover .card-img {
+  transform: scale(1.06);
+}
+
+/* Luxury Skeleton Shimmer Loading States */
+@keyframes luxuryShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(197, 160, 89, 0.09) 50%, rgba(255, 255, 255, 0.03) 75%);
+  background-size: 200% 100%;
+  animation: luxuryShimmer 2s infinite linear;
+}
+
+/* WCAG 2.2 AA Focus Indicators */
+button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--gold-light) !important;
+  outline-offset: 2px;
+}

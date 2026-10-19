@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   X,
   ExternalLink
@@ -21,6 +21,14 @@ export const BitrixTimelineModal: React.FC<BitrixTimelineModalProps> = ({
   currency,
   onOpenProject
 }) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   if (!isOpen || !deal) return null;
 
   return (

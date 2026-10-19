@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   MapPin,
@@ -7,7 +7,13 @@ import {
   PlusCircle,
   Bed,
   Bath,
-  Maximize2
+  Maximize2,
+  ChevronLeft,
+  ChevronRight,
+  Share2,
+  Check,
+  Calculator,
+  TrendingUp
 } from 'lucide-react';
 import type { ReellyProject, ReellyUnitType, Currency, AppMode, BitrixDealContext } from '../types';
 import { formatPrice } from '../services/api';
@@ -45,6 +51,26 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
   const [customMsg, setCustomMsg] = useState('Exclusive presentation prepared for your portfolio review.');
   const [isSendingProposal, setIsSendingProposal] = useState(false);
   const [proposalSuccess, setProposalSuccess] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const photos = (project.photos && project.photos.length > 0)
+    ? project.photos
+    : [{ url: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=85' }];
+
+  // Keyboard accessibility: Escape to close, Arrow keys for gallery
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      } else if (e.key === 'ArrowRight') {
+        setActivePhotoIdx(prev => (prev + 1) % photos.length);
+      } else if (e.key === 'ArrowLeft') {
+        setActivePhotoIdx(prev => (prev - 1 + photos.length) % photos.length);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [photos.length, onClose]);
 
   const handleAttach = async (unit?: ReellyUnitType) => {
     setIsAttaching(true);
@@ -66,22 +92,31 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
     }
   };
 
-  const photos = (project.photos && project.photos.length > 0)
-    ? project.photos
-    : [{ url: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=85' }];
+  const handleCopyProposalLink = () => {
+    const link = `${window.location.origin}?project=${project.id}${activeDeal ? `&dealId=${activeDeal.deal_id}&mode=bitrix` : ''}`;
+    navigator.clipboard.writeText(link);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2200);
+  };
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      zIndex: 2000,
-      backgroundColor: 'rgba(5, 6, 10, 0.85)',
-      backdropFilter: 'blur(12px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px'
-    }} onClick={onClose}>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-project-title"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 2000,
+        backgroundColor: 'rgba(5, 6, 10, 0.88)',
+        backdropFilter: 'blur(14px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px'
+      }}
+      onClick={onClose}
+    >
       <div
         className="glass-panel"
         onClick={(e) => e.stopPropagation()}
@@ -98,30 +133,61 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
           boxShadow: 'var(--shadow-luxury)'
         }}
       >
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          style={{
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            zIndex: 50,
-            background: 'rgba(0,0,0,0.6)',
-            border: '1px solid var(--border-light)',
-            borderRadius: '50%',
-            width: '40px',
-            height: '40px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            cursor: 'pointer',
-            transition: 'var(--transition-smooth)'
-          }}
-          title="Close Dossier"
-        >
-          <X size={20} />
-        </button>
+        {/* Top Control Bar with Close and Copy Link */}
+        <div style={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          zIndex: 60,
+          display: 'flex',
+          gap: '10px'
+        }}>
+          <button
+            onClick={handleCopyProposalLink}
+            style={{
+              background: copiedLink ? 'rgba(16, 185, 129, 0.9)' : 'rgba(0,0,0,0.65)',
+              border: '1px solid var(--border-light)',
+              borderRadius: '24px',
+              padding: '8px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              color: '#fff',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              backdropFilter: 'blur(8px)',
+              transition: 'var(--transition-smooth)'
+            }}
+            title="Copy VIP Client Proposal Link"
+            aria-label="Copy VIP Client Proposal Link"
+          >
+            {copiedLink ? <Check size={14} /> : <Share2 size={14} />}
+            <span>{copiedLink ? 'Link Copied!' : 'Share Proposal Link'}</span>
+          </button>
+
+          <button
+            onClick={onClose}
+            style={{
+              background: 'rgba(0,0,0,0.65)',
+              border: '1px solid var(--border-light)',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              cursor: 'pointer',
+              backdropFilter: 'blur(8px)',
+              transition: 'var(--transition-smooth)'
+            }}
+            title="Close Dossier (Esc)"
+            aria-label="Close Dossier"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
         {/* Gallery Hero Section */}
         <div style={{ position: 'relative', width: '100%', height: '420px', background: '#000' }}>
@@ -135,6 +201,59 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
             inset: 0,
             background: 'linear-gradient(180deg, rgba(10, 11, 16, 0.1) 0%, rgba(10, 11, 16, 0.95) 100%)'
           }} />
+
+          {/* Left/Right Gallery Nav Controls */}
+          {photos.length > 1 && (
+            <>
+              <button
+                onClick={() => setActivePhotoIdx(prev => (prev - 1 + photos.length) % photos.length)}
+                style={{
+                  position: 'absolute',
+                  left: '16px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'rgba(0,0,0,0.6)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '50%',
+                  width: '42px',
+                  height: '42px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  zIndex: 20
+                }}
+                aria-label="Previous photo"
+              >
+                <ChevronLeft size={22} />
+              </button>
+
+              <button
+                onClick={() => setActivePhotoIdx(prev => (prev + 1) % photos.length)}
+                style={{
+                  position: 'absolute',
+                  right: '16px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'rgba(0,0,0,0.6)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '50%',
+                  width: '42px',
+                  height: '42px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  zIndex: 20
+                }}
+                aria-label="Next photo"
+              >
+                <ChevronRight size={22} />
+              </button>
+            </>
+          )}
 
           {/* Thumbnail Strip */}
           {photos.length > 1 && (
@@ -182,7 +301,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
               </div>
             </div>
 
-            <h1 className="font-serif" style={{ fontSize: '34px', fontWeight: 800, color: '#fff', margin: 0 }}>
+            <h1 id="modal-project-title" className="font-serif" style={{ fontSize: '34px', fontWeight: 800, color: '#fff', margin: 0 }}>
               {project.name}
             </h1>
           </div>
@@ -202,7 +321,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
           }}>
             <div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Starting Price</div>
-              <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--gold-light)', marginTop: '2px' }}>
+              <div className="tabular-nums" style={{ fontSize: '22px', fontWeight: 700, color: 'var(--gold-light)', marginTop: '2px' }}>
                 {formatPrice(project.price_from, currency)}
               </div>
             </div>
@@ -225,6 +344,59 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Floors</div>
               <div style={{ fontSize: '16px', fontWeight: 600, color: '#fff', marginTop: '4px' }}>
                 {project.floors || 50} Levels
+              </div>
+            </div>
+          </div>
+
+          {/* Investment & Payment Schedule Breakdown Card */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(197, 160, 89, 0.08) 0%, rgba(18, 22, 34, 0.9) 100%)',
+            border: '1px solid var(--border-gold)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Calculator size={18} color="var(--gold-light)" />
+                <h4 className="font-serif" style={{ fontSize: '17px', color: '#fff', margin: 0 }}>
+                  Executive Investment & Payment Plan Schedule
+                </h4>
+              </div>
+              <span className="badge-gold" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <TrendingUp size={12} /> Projected 8.2% Gross ROI
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px' }}>
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>20% Initial Booking</div>
+                <div className="tabular-nums" style={{ fontSize: '17px', fontWeight: 700, color: 'var(--gold-light)', marginTop: '4px' }}>
+                  {formatPrice(project.price_from * 0.20, currency)}
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>40% During Construction</div>
+                <div className="tabular-nums" style={{ fontSize: '17px', fontWeight: 700, color: '#fff', marginTop: '4px' }}>
+                  {formatPrice(project.price_from * 0.40, currency)}
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>40% On Handover</div>
+                <div className="tabular-nums" style={{ fontSize: '17px', fontWeight: 700, color: '#fff', marginTop: '4px' }}>
+                  {formatPrice(project.price_from * 0.40, currency)}
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Est. Annual Rental Yield</div>
+                <div className="tabular-nums" style={{ fontSize: '17px', fontWeight: 700, color: '#34d399', marginTop: '4px' }}>
+                  {formatPrice(project.price_from * 0.082, currency)} / yr
+                </div>
               </div>
             </div>
           </div>
@@ -321,7 +493,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
                             </span>
                           )}
                           {u.area_sqft !== undefined && (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span className="tabular-nums" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <Maximize2 size={14} color="var(--gold-light)" /> {u.area_sqft} sq.ft ({u.area_sqm} m²)
                             </span>
                           )}
@@ -331,7 +503,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <div style={{ textAlign: 'right' }}>
                           <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>STARTING FROM</div>
-                          <div style={{ fontSize: '17px', fontWeight: 700, color: 'var(--gold-light)' }}>
+                          <div className="tabular-nums" style={{ fontSize: '17px', fontWeight: 700, color: 'var(--gold-light)' }}>
                             {formatPrice(u.price_from, currency)}
                           </div>
                         </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   MapPin,
   Calendar,
@@ -7,7 +7,9 @@ import {
   ArrowRight,
   Send,
   PlusCircle,
-  CheckCircle2
+  CheckCircle2,
+  Share2,
+  Check
 } from 'lucide-react';
 import type { ReellyProject, Currency, AppMode, BitrixDealContext } from '../types';
 import { formatPrice } from '../services/api';
@@ -37,6 +39,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   onSendProposal,
   isAttachedToDeal
 }) => {
+  const [copiedLink, setCopiedLink] = useState(false);
+
   // Calculate a smart match percentage against the active deal
   const calculateMatchScore = (): number => {
     if (!activeDeal) return 92;
@@ -62,15 +66,22 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
 
   const matchScore = calculateMatchScore();
 
+  const handleCopyLink = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const link = `${window.location.origin}?project=${project.id}${activeDeal ? `&dealId=${activeDeal.deal_id}&mode=bitrix` : ''}`;
+    navigator.clipboard.writeText(link);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2200);
+  };
+
   return (
     <div
       onClick={onSelect}
-      className={`glass-panel ${isSelected ? 'glass-panel-gold' : ''}`}
+      className={`glass-panel property-card ${isSelected ? 'glass-panel-gold' : ''}`}
       style={{
         borderRadius: 'var(--radius-lg)',
         overflow: 'hidden',
         cursor: 'pointer',
-        transition: 'var(--transition-smooth)',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
@@ -94,7 +105,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         <div style={{
           position: 'absolute',
           inset: 0,
-          background: 'linear-gradient(180deg, rgba(10, 11, 16, 0.2) 0%, rgba(10, 11, 16, 0.85) 100%)'
+          background: 'linear-gradient(180deg, rgba(10, 11, 16, 0.15) 0%, rgba(10, 11, 16, 0.9) 100%)'
         }} />
 
         {/* Top Badges */}
@@ -111,23 +122,47 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
             {project.sale_status || 'Active'}
           </span>
 
-          {appMode === 'bitrix' && (
-            <span style={{
-              background: matchScore >= 85 ? 'rgba(16, 185, 129, 0.9)' : 'rgba(0, 162, 232, 0.9)',
-              color: '#fff',
-              fontSize: '11px',
-              fontWeight: 700,
-              padding: '4px 9px',
-              borderRadius: '20px',
-              backdropFilter: 'blur(8px)',
-              boxShadow: '0 4px 10px rgba(0,0,0,0.4)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}>
-              <Sparkles size={12} /> {matchScore}% Deal Match
-            </span>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {appMode === 'bitrix' && (
+              <span style={{
+                background: matchScore >= 85 ? 'rgba(16, 185, 129, 0.9)' : 'rgba(0, 162, 232, 0.9)',
+                color: '#fff',
+                fontSize: '11px',
+                fontWeight: 700,
+                padding: '4px 9px',
+                borderRadius: '20px',
+                backdropFilter: 'blur(8px)',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                <Sparkles size={12} /> {matchScore}% Match
+              </span>
+            )}
+
+            <button
+              onClick={handleCopyLink}
+              style={{
+                background: copiedLink ? 'rgba(16, 185, 129, 0.9)' : 'rgba(0,0,0,0.5)',
+                color: '#fff',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '50%',
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                backdropFilter: 'blur(6px)',
+                transition: 'var(--transition-smooth)'
+              }}
+              title={copiedLink ? 'Link Copied!' : 'Copy VIP Client Link'}
+              aria-label="Copy VIP Client Link"
+            >
+              {copiedLink ? <Check size={14} /> : <Share2 size={13} />}
+            </button>
+          </div>
         </div>
 
         {/* Bottom District & Developer info overlay */}
@@ -145,7 +180,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '5px',
-              background: 'rgba(0,0,0,0.6)',
+              background: 'rgba(0,0,0,0.65)',
               padding: '3px 8px',
               borderRadius: '6px',
               fontSize: '11px',
@@ -214,7 +249,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
             <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Starting From
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--gold-light)' }}>
+            <div className="tabular-nums" style={{ fontSize: '18px', fontWeight: 700, color: 'var(--gold-light)' }}>
               {formatPrice(project.price_from, currency)}
             </div>
           </div>
@@ -227,6 +262,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               }}
               className="btn-gold"
               style={{ padding: '7px 12px', fontSize: '12px' }}
+              aria-label={`Open dossier for ${project.name}`}
             >
               Dossier <ArrowRight size={13} />
             </button>
@@ -295,6 +331,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                 gap: '4px'
               }}
               title="Dispatch Client Proposal"
+              aria-label="Dispatch Client Proposal"
             >
               <Send size={12} color="#5ed6ff" /> Proposal
             </button>
