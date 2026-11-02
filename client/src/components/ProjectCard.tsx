@@ -9,7 +9,8 @@ import {
   PlusCircle,
   CheckCircle2,
   Share2,
-  Check
+  Check,
+  BedDouble
 } from 'lucide-react';
 import type { ReellyProject, Currency, AppMode, BitrixDealContext } from '../types';
 import { formatPrice } from '../services/api';
@@ -21,6 +22,7 @@ interface ProjectCardProps {
   activeDeal: BitrixDealContext | null;
   isSelected?: boolean;
   onSelect: () => void;
+  onHover?: (hovering: boolean) => void;
   onOpenDetails: () => void;
   onAttachToDeal?: () => void;
   onSendProposal?: () => void;
@@ -34,6 +36,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   activeDeal,
   isSelected,
   onSelect,
+  onHover,
   onOpenDetails,
   onAttachToDeal,
   onSendProposal,
@@ -66,6 +69,15 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
 
   const matchScore = calculateMatchScore();
 
+  const bedroomCounts = (project.unit_types || [])
+    .map(u => u.bedrooms)
+    .filter((b): b is number => typeof b === 'number');
+  const bedroomLabel = bedroomCounts.length
+    ? (Math.min(...bedroomCounts) === Math.max(...bedroomCounts)
+      ? `${Math.min(...bedroomCounts)} BR`
+      : `${Math.min(...bedroomCounts)}–${Math.max(...bedroomCounts)} BR`)
+    : null;
+
   const handleCopyLink = (e: React.MouseEvent) => {
     e.stopPropagation();
     const link = `${window.location.origin}?project=${project.id}${activeDeal ? `&dealId=${activeDeal.deal_id}&mode=bitrix` : ''}`;
@@ -77,6 +89,17 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   return (
     <div
       onClick={onSelect}
+      onMouseEnter={() => onHover?.(true)}
+      onMouseLeave={() => onHover?.(false)}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === 'Enter') onOpenDetails();
+        if (e.key === ' ') { e.preventDefault(); onSelect(); }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`${project.name} by ${project.developer?.name || 'developer'}, from ${formatPrice(project.price_from, currency)}`}
+      aria-pressed={isSelected}
       className={`glass-panel property-card ${isSelected ? 'glass-panel-gold' : ''}`}
       style={{
         borderRadius: 'var(--radius-lg)',
@@ -90,8 +113,11 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
       }}
     >
       {/* Cover Image & Badges */}
-      <div style={{ position: 'relative', height: '220px', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', height: '210px', overflow: 'hidden', flexShrink: 0, background: 'var(--bg-elevated)' }}>
         <img
+          loading="lazy"
+          decoding="async"
+          onLoad={(e) => e.currentTarget.classList.add('is-loaded')}
           src={project.photos?.[0]?.url || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80'}
           alt={project.name || 'Luxury Property'}
           style={{
@@ -105,7 +131,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         <div style={{
           position: 'absolute',
           inset: 0,
-          background: 'linear-gradient(180deg, rgba(10, 11, 16, 0.15) 0%, rgba(10, 11, 16, 0.9) 100%)'
+          background: 'linear-gradient(180deg, rgba(10, 11, 16, 0.35) 0%, rgba(10, 11, 16, 0) 28%, rgba(10, 11, 16, 0) 55%, rgba(10, 11, 16, 0.8) 100%)'
         }} />
 
         {/* Top Badges */}
@@ -213,10 +239,10 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
       {/* Content Section */}
       <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flex: 1, gap: '10px' }}>
         <div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <div className="eyebrow">
             {project.developer?.name || 'Exclusive Developer'}
           </div>
-          <h3 className="font-serif" style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginTop: '3px', lineHeight: 1.3 }}>
+          <h3 className="font-serif" style={{ fontSize: '23px', fontWeight: 600, color: '#fff', marginTop: '4px', lineHeight: 1.15 }}>
             {project.name}
           </h3>
         </div>
@@ -230,9 +256,16 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
             </div>
           )}
 
+          {bedroomLabel && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.04)', padding: '4px 8px', borderRadius: '6px' }}>
+              <BedDouble size={13} color="var(--gold-light)" />
+              <span>{bedroomLabel}</span>
+            </div>
+          )}
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.04)', padding: '4px 8px', borderRadius: '6px' }}>
             <Layers size={13} color="var(--gold-light)" />
-            <span>{project.unit_types?.length || 4} Unit Plans</span>
+            <span>{project.unit_types?.length || 4} {project.unit_types?.length === 1 ? 'Unit Plan' : 'Unit Plans'}</span>
           </div>
         </div>
 
@@ -246,10 +279,10 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           justifyContent: 'space-between'
         }}>
           <div>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <div className="eyebrow" style={{ fontSize: '9.5px' }}>
               Starting From
             </div>
-            <div className="tabular-nums" style={{ fontSize: '18px', fontWeight: 700, color: 'var(--gold-light)' }}>
+            <div className="tabular-nums" style={{ fontSize: '18px', fontWeight: 600, color: 'var(--gold-light)', marginTop: '2px' }}>
               {formatPrice(project.price_from, currency)}
             </div>
           </div>
@@ -261,10 +294,10 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                 onOpenDetails();
               }}
               className="btn-gold"
-              style={{ padding: '7px 12px', fontSize: '12px' }}
+              style={{ padding: '9px 14px', fontSize: '12px' }}
               aria-label={`Open dossier for ${project.name}`}
             >
-              Dossier <ArrowRight size={13} />
+              View Dossier <ArrowRight size={13} />
             </button>
           </div>
         </div>

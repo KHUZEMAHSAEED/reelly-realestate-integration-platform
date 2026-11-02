@@ -24,6 +24,7 @@ interface NavbarProps {
   activeDealId: string;
   setActiveDealId: (id: string) => void;
   onOpenTimeline: () => void;
+  isDemoMode?: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -38,23 +39,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   bitrixDeals,
   activeDealId,
   setActiveDealId,
-  onOpenTimeline
+  onOpenTimeline,
+  isDemoMode
 }) => {
   return (
-    <header className="glass-panel" style={{
-      position: 'sticky',
-      top: 0,
-      zIndex: 1000,
-      borderBottom: '1px solid var(--border-gold)',
-      padding: '12px 24px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: '16px'
-    }}>
+    <header className="glass-panel nav-root">
       {/* Brand Identity */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+      <div className="nav-group" style={{ gap: '20px' }}>
+        <a href="/" aria-label="Reelly Luxe home" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
           <div style={{
             width: '38px',
             height: '38px',
@@ -68,14 +60,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Building2 size={22} color="#0a0b10" strokeWidth={2.5} />
           </div>
           <div>
-            <div className="font-serif" style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '0.12em', color: '#fff' }}>
+            <div className="font-brand" style={{ fontSize: '19px', fontWeight: 800, color: '#fff', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
               REELLY <span className="text-gold-gradient">LUXE</span>
             </div>
-            <div style={{ fontSize: '10px', letterSpacing: '0.18em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-              API v2.0 Real Estate Engine
+            <div className="hide-md" style={{ fontSize: '9.5px', letterSpacing: '0.2em', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '3px' }}>
+              Dubai Off-Plan Collection
             </div>
           </div>
-        </div>
+        </a>
 
         {/* Dual Mode Switcher: Standalone Portal vs Bitrix24 CRM Mode */}
         <div style={{
@@ -87,6 +79,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         }}>
           <button
             onClick={() => setAppMode('portal')}
+            aria-pressed={appMode === 'portal'}
+            title="Client-facing luxury portal"
             style={{
               padding: '6px 14px',
               borderRadius: '20px',
@@ -102,11 +96,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               transition: 'var(--transition-smooth)'
             }}
           >
-            <Sparkles size={14} /> Luxury Portal
+            <Sparkles size={14} /> <span className="hide-sm">Portal</span>
           </button>
 
           <button
             onClick={() => setAppMode('bitrix')}
+            aria-pressed={appMode === 'bitrix'}
+            title="Broker workspace embedded in Bitrix24 deals"
             style={{
               padding: '6px 14px',
               borderRadius: '20px',
@@ -122,17 +118,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               transition: 'var(--transition-smooth)'
             }}
           >
-            <Briefcase size={14} /> Bitrix24 CRM Mode
+            <Briefcase size={14} /> <span className="hide-sm">Bitrix24 CRM</span>
           </button>
         </div>
       </div>
 
       {/* Bitrix Active Deal Context Switcher (if in CRM mode) */}
       {appMode === 'bitrix' && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(0, 162, 232, 0.1)', padding: '6px 12px', borderRadius: '10px', border: '1px solid rgba(0, 162, 232, 0.3)' }}>
-            <span style={{ fontSize: '11px', color: '#5ed6ff', fontWeight: 600 }}>ACTIVE DEAL:</span>
+        <div className="nav-group" style={{ gap: '10px', minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(0, 162, 232, 0.1)', padding: '6px 12px', borderRadius: '10px', border: '1px solid rgba(0, 162, 232, 0.3)', minWidth: 0 }}>
+            <span className="hide-md" style={{ fontSize: '10.5px', color: '#5ed6ff', fontWeight: 600, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>ACTIVE DEAL</span>
             <select
+              aria-label="Active Bitrix24 deal"
               value={activeDealId}
               onChange={(e) => setActiveDealId(e.target.value)}
               style={{
@@ -142,7 +139,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 fontSize: '13px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                outline: 'none'
+                outline: 'none',
+                minWidth: 0,
+                maxWidth: '260px',
+                textOverflow: 'ellipsis'
               }}
             >
               {bitrixDeals.map(d => (
@@ -165,9 +165,16 @@ export const Navbar: React.FC<NavbarProps> = ({
       )}
 
       {/* Right Controls: View Switcher, Currency, API Key Settings */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div className="nav-group">
+        {isDemoMode && (
+          <span className="demo-pill hide-sm" title="Showing a curated sample catalog. Connect the Node.js BFF for live Reelly inventory.">
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--gold-light)' }} />
+            Live Demo
+          </span>
+        )}
+
         {/* View Mode Toggle */}
-        <div style={{
+        <div role="group" aria-label="Layout" className="hide-sm" style={{
           display: 'flex',
           background: 'rgba(0,0,0,0.3)',
           borderRadius: '8px',
@@ -176,6 +183,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         }}>
           <button
             title="Split Map & List"
+            aria-label="Split Map & List"
             onClick={() => setViewMode('split')}
             style={{
               padding: '6px 10px',
@@ -190,6 +198,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
           <button
             title="Grid View"
+            aria-label="Grid View"
             onClick={() => setViewMode('grid')}
             style={{
               padding: '6px 10px',
@@ -204,6 +213,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
           <button
             title="Full Map View"
+            aria-label="Full Map View"
             onClick={() => setViewMode('map')}
             style={{
               padding: '6px 10px',
@@ -220,6 +230,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Currency Switcher */}
         <select
+          aria-label="Display currency"
           value={currency}
           onChange={(e) => setCurrency(e.target.value as Currency)}
           style={{
@@ -243,6 +254,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Reelly API Key Status Button */}
         <button
           onClick={onOpenSettings}
+          aria-label="Data source settings"
+          title="Data source settings"
           style={{
             background: apiKeyStatus.isConfigured ? 'rgba(16, 185, 129, 0.12)' : 'rgba(197, 160, 89, 0.12)',
             border: `1px solid ${apiKeyStatus.isConfigured ? 'rgba(16, 185, 129, 0.4)' : 'var(--border-gold)'}`,
@@ -259,7 +272,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           }}
         >
           <KeyRound size={14} />
-          <span>{apiKeyStatus.isConfigured ? 'Reelly v2: Live' : 'Reelly Engine: Ready'}</span>
+          <span className="hide-lg">{apiKeyStatus.isConfigured ? 'Reelly v2: Live' : isDemoMode ? 'Sample Catalog' : 'Reelly Engine: Ready'}</span>
           <span style={{
             width: '7px',
             height: '7px',

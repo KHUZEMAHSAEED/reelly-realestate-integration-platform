@@ -6,6 +6,7 @@ import type {
   ReellyPagination,
   Currency
 } from '../types';
+import { demoApi, setDemoProjectResolver } from './demoApi';
 
 export const CURRENCY_RATES: Record<Currency, { symbol: string; rate: number; label: string }> = {
   AED: { symbol: 'AED', rate: 1.0, label: 'UAE Dirham' },
@@ -25,9 +26,18 @@ export function formatPrice(amountAed: number | undefined | null, currency: Curr
   return `${conf.symbol}${converted.toLocaleString()}`;
 }
 
+// Short form for dense surfaces such as map pins: "AED 2.9M", "$795K"
+export function formatPriceCompact(amountAed: number | undefined | null, currency: Currency = 'AED'): string {
+  if (!amountAed) return 'POA';
+  const conf = CURRENCY_RATES[currency] || CURRENCY_RATES.AED;
+  const value = amountAed * conf.rate;
+  const short = value >= 1e6 ? `${(value / 1e6).toFixed(value >= 1e8 ? 0 : 1).replace(/\.0$/, '')}M` : `${Math.round(value / 1e3)}K`;
+  return currency === 'AED' ? `AED ${short}` : `${conf.symbol}${short}`;
+}
+
 const API_BASE = '/api';
 
-export const api = {
+const liveApi = {
   async getHealth() {
     const res = await fetch(`${API_BASE}/health`);
     return res.json();
@@ -128,3 +138,39 @@ export const api = {
     return res.json();
   }
 };
+
+// Backend resolution: the Express BFF serves everything; the Cloudflare Pages Function serves the
+// catalog only (capabilities.crm === false), so Bitrix CRM calls run in-browser; with no backend at all
+// (or VITE_DEMO_MODE=true) the whole app runs on the bundled sample catalog.
+type Backend = typeof liveApi;
+
+const CRM_METHODS = new Set<keyof Backend>(['getBitrixDeals', 'getBitrixDealContext', 'attachProjectToDeal', 'sendProposal']);
+const FORCE_DEMO = import.meta.env.VITE_DEMO_MODE === 'true' || import.meta.env.MODE === 'demo';
+
+let demoActive = FORCE_DEMO;
+
+const backendReady: Promise<{ catalog: Backend; crm: Backend }> = (FORCE_DEMO
+  ? Promise.resolve(null)
+  : fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(4000) })
+      .then(res => (res.ok && res.headers.get('content-type')?.includes('application/json') ? res.json() : null))
+      .catch(() => null)
+).then(health => {
+  const catalog = health ? liveApi : demoApi;
+  const crm = health && health.capabilities?.crm !== false ? liveApi : demoApi;
+  demoActive = !health;
+  if (catalog === liveApi && crm === demoApi) {
+    setDemoProjectResolver(id => liveApi.getProject(id).catch(() => undefined));
+  }
+  return { catalog, crm };
+});
+
+export const isDemoMode = () => demoActive;
+
+export const api = new Proxy({} as Backend, {
+  get: (_target, method: keyof Backend) =>
+    async (...args: unknown[]) => {
+      const { catalog, crm } = await backendReady;
+      const backend = CRM_METHODS.has(method) ? crm : catalog;
+      return (backend[method] as (...a: unknown[]) => unknown)(...args);
+    }
+});

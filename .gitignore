@@ -45,3 +45,7 @@ Thumbs.db
 .temp/
 *.tmp
 .eslintcache
+
+# Cloudflare local secrets
+.dev.vars
+.wrangler/

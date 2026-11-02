@@ -1,13 +1,12 @@
+// Must be the first import: ESM evaluates imports before module code, and reellyClient reads env on load
+import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { reellyClient } from './reellyClient.js';
-import { BitrixDealContext } from './types.js';
-
-dotenv.config();
+import { MOCK_BITRIX_DEALS } from './mockData.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -114,66 +113,15 @@ function getSafeDeal(dealId: unknown) {
   return BITRIX_DEALS[safeId];
 }
 
-// In-memory simulated Bitrix24 deals database
-const BITRIX_DEALS: Record<string, BitrixDealContext & { attachedProjects?: any[]; activityLog?: any[] }> = {
-  '101': {
-    deal_id: '101',
-    title: 'Sheikh Mohammed Al-Qasimi - Waterfront Penthouse Acquisition',
-    opportunity: 35000000,
-    currency: 'AED',
-    stage_id: 'PREPARATION_PROPOSAL',
-    location_preference: 'Dubai Harbour / Jumeirah Bay',
-    bedrooms_preference: 4,
-    contact_name: 'Sheikh Mohammed Al-Qasimi',
-    contact_phone: '+971 50 882 1990',
-    contact_email: 'office@alqasimi-holdings.ae',
-    assigned_agent_name: 'Rashid Khan (Private Client Advisor)',
-    attachedProjects: [],
-    activityLog: [
-      { id: 'act-1', date: new Date().toISOString(), type: 'NOTE', text: 'Client requested ultra-high floor with sea or marina views and private elevator access.' }
-    ]
-  },
-  '102': {
-    deal_id: '102',
-    title: 'Dr. Sarah Al-Mansoor - High-Yield Creek Harbour Portfolios',
-    opportunity: 7000000,
-    currency: 'AED',
-    stage_id: 'UNIT_SELECTION',
-    location_preference: 'Dubai Creek Harbour',
-    bedrooms_preference: 2,
-    contact_name: 'Dr. Sarah Al-Mansoor',
-    contact_phone: '+971 55 412 8831',
-    contact_email: 'sarah.mansoor@meduae.org',
-    assigned_agent_name: 'Elena Rostova (Senior Investment Consultant)',
-    attachedProjects: [],
-    activityLog: [
-      { id: 'act-2', date: new Date().toISOString(), type: 'NOTE', text: 'Targeting minimum 7.5% net expected ROI with flexible post-handover payment plan.' }
-    ]
-  },
-  '103': {
-    deal_id: '103',
-    title: 'Alexander Petrov - Branded Bugatti / Downtown Trophy Asset',
-    opportunity: 45000000,
-    currency: 'AED',
-    stage_id: 'VIP_PRESENTATION',
-    location_preference: 'Business Bay / Downtown Dubai',
-    bedrooms_preference: 3,
-    contact_name: 'Alexander Petrov',
-    contact_phone: '+971 52 911 3400',
-    contact_email: 'alexander.p@globalcapital.ch',
-    assigned_agent_name: 'Tariq Al-Hashemi (Managing Director)',
-    attachedProjects: [],
-    activityLog: [
-      { id: 'act-3', date: new Date().toISOString(), type: 'NOTE', text: 'Interested in automotive branded residences with private vehicular lifts.' }
-    ]
-  }
-};
+// In-memory simulated Bitrix24 deals database (seeded from shared mock data)
+const BITRIX_DEALS = MOCK_BITRIX_DEALS;
 
 // 1. Health Endpoint
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     service: 'Reelly API v2.0 BFF Gateway & Bitrix24 Real Estate CRM Engine',
+    capabilities: { crm: true },
     timestamp: new Date().toISOString()
   });
 });

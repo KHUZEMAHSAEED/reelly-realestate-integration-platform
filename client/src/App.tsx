@@ -17,8 +17,8 @@ import type {
   ReellyProject,
   BitrixDealContext
 } from './types';
-import { api } from './services/api';
-import { CheckCircle2 } from 'lucide-react';
+import { api, formatPrice, isDemoMode } from './services/api';
+import { CheckCircle2, Map as MapIcon, List } from 'lucide-react';
 
 export function App() {
   // Query param detection for Bitrix iframe / embedded mode
@@ -33,6 +33,9 @@ export function App() {
   const [projects, setProjects] = useState<ReellyProject[]>([]);
   const [developers, setDevelopers] = useState<Array<{ id: string | number; name: string }>>([]);
   const [selectedProject, setSelectedProject] = useState<ReellyProject | null>(null);
+  const [hoveredProjectId, setHoveredProjectId] = useState<string | number | null>(null);
+  const [showMobileMap, setShowMobileMap] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
   const [activeModalProject, setActiveModalProject] = useState<ReellyProject | null>(null);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -80,16 +83,14 @@ export function App() {
         api.getApiKeyStatus().catch(() => ({ isConfigured: false, maskedKey: null, hasEnvKey: false })),
         api.getBitrixDeals().catch(() => []),
         api.getDevelopers().catch(() => ({ results: [] })),
-        api.getProjects().catch(() => ({ results: [] }))
+        api.getProjects({ limit: 100 }).catch(() => ({ results: [] }))
       ]);
 
       setApiKeyStatus(keyRes);
       setBitrixDeals(dealsRes);
       setDevelopers(devsRes.results || []);
       setProjects(projRes.results || []);
-      if (projRes.results?.length > 0) {
-        setSelectedProject(projRes.results[0]);
-      }
+      setDemoMode(isDemoMode());
     } catch (err: any) {
       console.error('Initialization error:', err);
     } finally {
@@ -155,6 +156,31 @@ export function App() {
     });
   }, [projects, filters]);
 
+  const lowestPrice = useMemo(() => {
+    const prices = filteredProjects.map(p => p.price_from).filter(Boolean);
+    return prices.length ? Math.min(...prices) : null;
+  }, [filteredProjects]);
+
+  const renderCard = (p: ReellyProject) => {
+    const isAttached = activeDeal?.attachedProjects?.some(ap => String(ap.projectId) === String(p.id)) || false;
+    return (
+      <ProjectCard
+        key={p.id}
+        project={p}
+        currency={currency}
+        appMode={appMode}
+        activeDeal={activeDeal}
+        isSelected={selectedProject?.id === p.id}
+        onSelect={() => setSelectedProject(p)}
+        onHover={(hovering) => setHoveredProjectId(hovering ? p.id : null)}
+        onOpenDetails={() => setActiveModalProject(p)}
+        onAttachToDeal={() => handleAttachToDeal(p.id)}
+        onSendProposal={() => handleSendProposal(p.id, 'whatsapp', 'Luxury Portfolio review')}
+        isAttachedToDeal={isAttached}
+      />
+    );
+  };
+
   // Bitrix attach action
   const handleAttachToDeal = async (projectId: string | number, unitId?: string | number, notes?: string) => {
     if (!activeDeal) return;
@@ -191,37 +217,16 @@ export function App() {
   };
 
   return (
-    <div style={{
-      height: '100vh',
-      width: '100vw',
-      display: 'flex',
-      flexDirection: 'column',
-      backgroundColor: 'var(--bg-primary)',
-      overflow: 'hidden'
-    }}>
+    <div className="app-shell">
       {/* Toast Notification */}
-      {toast && (
-        <div style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          zIndex: 3000,
-          background: 'linear-gradient(135deg, rgba(20, 25, 38, 0.98) 0%, rgba(10, 12, 18, 0.98) 100%)',
-          border: '1px solid var(--border-gold-bright)',
-          color: '#fff',
-          padding: '14px 22px',
-          borderRadius: '12px',
-          boxShadow: 'var(--shadow-luxury)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          fontSize: '13px',
-          fontWeight: 600
-        }}>
-          <CheckCircle2 size={18} color="var(--gold-light)" />
-          <span>{toast}</span>
-        </div>
-      )}
+      <div aria-live="polite">
+        {toast && (
+          <div className="toast" role="status">
+            <CheckCircle2 size={18} color="var(--gold-light)" style={{ flexShrink: 0 }} />
+            <span>{toast}</span>
+          </div>
+        )}
+      </div>
 
       {/* Top Navbar */}
       <Navbar
@@ -237,6 +242,7 @@ export function App() {
         activeDealId={activeDealId}
         setActiveDealId={setActiveDealId}
         onOpenTimeline={() => setIsTimelineOpen(true)}
+        isDemoMode={demoMode}
       />
 
       {/* Bitrix CRM Deal Status Bar (shown when in Bitrix Mode) */}
@@ -258,18 +264,9 @@ export function App() {
       />
 
       {/* Main View Area - Full Flex Containment (No Double Scrollbars) */}
-      <main style={{ flex: 1, minHeight: 0, display: 'flex', position: 'relative', overflow: 'hidden' }}>
+      <main className="app-main">
         {loading ? (
-          <div style={{
-            flex: 1,
-            height: '100%',
-            overflowY: 'auto',
-            padding: '24px',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-            gap: '24px',
-            alignContent: 'start'
-          }}>
+          <div className="card-grid">
             {[1, 2, 3, 4, 5, 6].map(n => (
               <SkeletonCard key={n} />
             ))}
@@ -280,84 +277,55 @@ export function App() {
           <>
             {/* View Mode 1: Split View (Map on Right, Scrollable Cards on Left) */}
             {viewMode === 'split' && (
-              <div style={{ flex: 1, height: '100%', minHeight: 0, display: 'flex' }}>
+              <div className={`split-layout ${showMobileMap ? 'show-map' : ''}`}>
                 {/* Scrollable Project Cards List */}
-                <div style={{
-                  width: '520px',
-                  maxWidth: '100%',
-                  height: '100%',
-                  minHeight: 0,
-                  overflowY: 'auto',
-                  padding: '20px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '16px',
-                  borderRight: '1px solid var(--border-light)'
-                }}>
-                  {filteredProjects.map((p) => {
-                    const isAttached = activeDeal?.attachedProjects?.some(ap => String(ap.projectId) === String(p.id)) || false;
-                    return (
-                      <ProjectCard
-                        key={p.id}
-                        project={p}
-                        currency={currency}
-                        appMode={appMode}
-                        activeDeal={activeDeal}
-                        isSelected={selectedProject?.id === p.id}
-                        onSelect={() => setSelectedProject(p)}
-                        onOpenDetails={() => setActiveModalProject(p)}
-                        onAttachToDeal={() => handleAttachToDeal(p.id)}
-                        onSendProposal={() => handleSendProposal(p.id, 'whatsapp', 'Luxury Portfolio review')}
-                        isAttachedToDeal={isAttached}
-                      />
-                    );
-                  })}
+                <div className="split-list">
+                  <div className="list-summary">
+                    <div>
+                      <div className="eyebrow">Curated Collection</div>
+                      <div className="font-serif" style={{ fontSize: '22px', color: '#fff', marginTop: '2px' }}>
+                        {filteredProjects.length} {filteredProjects.length === 1 ? 'Residence' : 'Residences'}
+                      </div>
+                    </div>
+                    {lowestPrice !== null && (
+                      <div style={{ textAlign: 'right' }}>
+                        <div className="eyebrow">From</div>
+                        <div className="tabular-nums" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--gold-light)', marginTop: '2px' }}>
+                          {formatPrice(lowestPrice, currency)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {filteredProjects.map(renderCard)}
                 </div>
 
                 {/* Interactive Leaflet Map */}
-                <div style={{ flex: 1, height: '100%', minHeight: 0 }}>
+                <div className="split-map">
                   <MapView
                     projects={filteredProjects}
                     selectedProject={selectedProject}
+                    hoveredProjectId={hoveredProjectId}
                     onSelectProject={(p) => setSelectedProject(p)}
                     onOpenDetails={(p) => setActiveModalProject(p)}
                     currency={currency}
                   />
                 </div>
+
+                {/* Mobile list/map switch */}
+                <button
+                  className="btn-gold mobile-map-toggle"
+                  onClick={() => setShowMobileMap(v => !v)}
+                  aria-label={showMobileMap ? 'Show list of residences' : 'Show residences on map'}
+                >
+                  {showMobileMap ? <><List size={16} /> List</> : <><MapIcon size={16} /> Map</>}
+                </button>
               </div>
             )}
 
             {/* View Mode 2: Grid View (All Luxury Cards in Responsive Grid) */}
             {viewMode === 'grid' && (
-              <div style={{
-                flex: 1,
-                height: '100%',
-                minHeight: 0,
-                overflowY: 'auto',
-                padding: '28px',
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-                gap: '24px',
-                alignContent: 'start'
-              }}>
-                {filteredProjects.map((p) => {
-                  const isAttached = activeDeal?.attachedProjects?.some(ap => String(ap.projectId) === String(p.id)) || false;
-                  return (
-                    <ProjectCard
-                      key={p.id}
-                      project={p}
-                      currency={currency}
-                      appMode={appMode}
-                      activeDeal={activeDeal}
-                      isSelected={selectedProject?.id === p.id}
-                      onSelect={() => setSelectedProject(p)}
-                      onOpenDetails={() => setActiveModalProject(p)}
-                      onAttachToDeal={() => handleAttachToDeal(p.id)}
-                      onSendProposal={() => handleSendProposal(p.id, 'whatsapp', 'Luxury Portfolio review')}
-                      isAttachedToDeal={isAttached}
-                    />
-                  );
-                })}
+              <div className="card-grid">
+                {filteredProjects.map(renderCard)}
               </div>
             )}
 
@@ -367,9 +335,11 @@ export function App() {
                 <MapView
                   projects={filteredProjects}
                   selectedProject={selectedProject}
+                  hoveredProjectId={hoveredProjectId}
                   onSelectProject={(p) => setSelectedProject(p)}
                   onOpenDetails={(p) => setActiveModalProject(p)}
                   currency={currency}
+                  scrollWheelZoom
                 />
               </div>
             )}
