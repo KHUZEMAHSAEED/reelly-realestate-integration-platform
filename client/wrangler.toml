@@ -1,0 +1,6 @@
+# Cloudflare Pages project config (used by `wrangler pages dev/deploy` and Git-connected builds).
+# Set the Reelly key as an encrypted secret, never here:
+#   npx wrangler pages secret put REELLY_API_KEY --project-name reelly-luxe
+name = "reelly-luxe"
+pages_build_output_dir = "./dist"
+compatibility_date = "2025-09-01"

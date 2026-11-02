@@ -1,7 +1,13 @@
 import React from 'react';
 import {
   Search,
-  RotateCcw
+  RotateCcw,
+  Waves,
+  Gem,
+  Crown,
+  TrendingUp,
+  LayoutGrid,
+  X
 } from 'lucide-react';
 import type { Currency } from '../types';
 import { formatPrice } from '../services/api';
@@ -23,6 +29,16 @@ interface FilterBarProps {
   totalCount: number;
 }
 
+const ANY_BUDGET = 100000000;
+
+const quickTags = [
+  { label: 'All Residences', value: '', icon: LayoutGrid },
+  { label: 'Waterfront & Marina', value: 'waterfront', icon: Waves },
+  { label: 'Branded Residences', value: 'branded', icon: Gem },
+  { label: 'Sky Penthouses', value: 'penthouse', icon: Crown },
+  { label: 'High-Yield Investments', value: 'yield', icon: TrendingUp }
+];
+
 export const FilterBar: React.FC<FilterBarProps> = ({
   filters,
   setFilters,
@@ -36,195 +52,142 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       developer: '',
       status: '',
       region: '',
-      maxPrice: 100000000,
+      maxPrice: ANY_BUDGET,
       quickTag: ''
     });
   };
 
-  const quickTags = [
-    { label: 'All Portfolios', value: '' },
-    { label: '🌊 Waterfront & Marina', value: 'waterfront' },
-    { label: '🏎️ Branded Luxury (Bugatti/Bvlgari)', value: 'branded' },
-    { label: '👑 Sky Penthouses', value: 'penthouse' },
-    { label: '💎 High-Yield Off-Plan', value: 'yield' }
-  ];
+  const hasActiveFilters = Boolean(
+    filters.search || filters.developer || filters.status || filters.region || filters.maxPrice < ANY_BUDGET || filters.quickTag
+  );
 
   return (
-    <div className="glass-panel" style={{
-      padding: '16px 24px',
-      borderBottom: '1px solid var(--border-light)',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '14px'
-    }}>
-      {/* Top Row: Search input + Dropdowns + Stats */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        flexWrap: 'wrap'
-      }}>
-        {/* Search Input */}
-        <div style={{
-          flex: '1 1 260px',
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center'
-        }}>
+    <div className="glass-panel filter-bar">
+      {/* Search */}
+      <div className="filter-row">
+        <div className="filter-search" style={{ flex: '1 1 280px', position: 'relative', display: 'flex', alignItems: 'center' }}>
           <Search
             size={16}
             color="var(--gold-light)"
-            style={{ position: 'absolute', left: '14px' }}
+            style={{ position: 'absolute', left: '14px', pointerEvents: 'none' }}
           />
           <input
-            type="text"
-            placeholder="Search projects, districts (e.g. Dubai Harbour, Downtown, Sobha)..."
+            type="search"
+            aria-label="Search residences"
+            placeholder="Search by project, district or developer"
             value={filters.search}
             onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+            className="control"
             style={{
               width: '100%',
-              background: 'rgba(18, 22, 34, 0.95)',
-              border: '1px solid var(--border-gold)',
-              borderRadius: '8px',
-              padding: '9px 14px 9px 40px',
+              padding: '0 36px 0 40px',
               color: '#fff',
-              fontSize: '13px',
-              fontFamily: 'var(--font-sans)',
-              outline: 'none',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.3)'
+              cursor: 'text',
+              borderColor: 'var(--border-gold)'
             }}
           />
+          {filters.search && (
+            <button
+              onClick={() => setFilters(prev => ({ ...prev, search: '' }))}
+              aria-label="Clear search"
+              style={{ position: 'absolute', right: '10px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex' }}
+            >
+              <X size={15} />
+            </button>
+          )}
         </div>
 
-        {/* Developer Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <select
-            value={filters.developer}
-            onChange={(e) => setFilters(prev => ({ ...prev, developer: e.target.value }))}
-            style={{
-              background: 'rgba(18, 22, 34, 0.95)',
-              border: '1px solid var(--border-light)',
-              borderRadius: '8px',
-              padding: '9px 14px',
-              color: filters.developer ? 'var(--gold-light)' : 'var(--text-muted)',
-              fontSize: '13px',
-              outline: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            <option value="">All Developers ({developers.length})</option>
-            {developers.map(d => (
-              <option key={d.id} value={d.name}>{d.name}</option>
-            ))}
-          </select>
+        {/* Count Counter */}
+        <div className="hide-sm" style={{ marginLeft: 'auto', fontSize: '13px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }} aria-live="polite">
+          <strong className="tabular-nums" style={{ color: 'var(--gold-light)' }}>{totalCount}</strong> {totalCount === 1 ? 'residence' : 'residences'} found
         </div>
+      </div>
 
-        {/* Status Selector */}
-        <div>
-          <select
-            value={filters.status}
-            onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-            style={{
-              background: 'rgba(18, 22, 34, 0.95)',
-              border: '1px solid var(--border-light)',
-              borderRadius: '8px',
-              padding: '9px 14px',
-              color: filters.status ? 'var(--gold-light)' : 'var(--text-muted)',
-              fontSize: '13px',
-              outline: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            <option value="">Construction Status: All</option>
-            <option value="Under Construction">Under Construction</option>
-            <option value="Completed">Completed Ready</option>
-            <option value="Off-Plan">Off-Plan</option>
-          </select>
-        </div>
+      {/* Refinements */}
+      <div className="filter-row">
+        <select
+          aria-label="Developer"
+          value={filters.developer}
+          onChange={(e) => setFilters(prev => ({ ...prev, developer: e.target.value }))}
+          className={`control ${filters.developer ? 'is-active' : ''}`}
+        >
+          <option value="">All Developers</option>
+          {developers.map(d => (
+            <option key={d.id} value={d.name}>{d.name}</option>
+          ))}
+        </select>
 
-        {/* Region Selector */}
-        <div>
-          <select
-            value={filters.region}
-            onChange={(e) => setFilters(prev => ({ ...prev, region: e.target.value }))}
-            style={{
-              background: 'rgba(18, 22, 34, 0.95)',
-              border: '1px solid var(--border-light)',
-              borderRadius: '8px',
-              padding: '9px 14px',
-              color: filters.region ? 'var(--gold-light)' : 'var(--text-muted)',
-              fontSize: '13px',
-              outline: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            <option value="">Region: Dubai & All UAE</option>
-            <option value="Dubai">Dubai</option>
-            <option value="Abu Dhabi">Abu Dhabi</option>
-            <option value="Ras Al Khaimah">Ras Al Khaimah</option>
-          </select>
-        </div>
+        <select
+          aria-label="Construction status"
+          value={filters.status}
+          onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+          className={`control ${filters.status ? 'is-active' : ''}`}
+        >
+          <option value="">Any Status</option>
+          <option value="Under Construction">Under Construction</option>
+          <option value="Completed">Ready to Move In</option>
+          <option value="Off-Plan">Off-Plan</option>
+        </select>
+
+        <select
+          aria-label="Region"
+          value={filters.region}
+          onChange={(e) => setFilters(prev => ({ ...prev, region: e.target.value }))}
+          className={`control ${filters.region ? 'is-active' : ''}`}
+        >
+          <option value="">All Emirates</option>
+          <option value="Dubai">Dubai</option>
+          <option value="Abu Dhabi">Abu Dhabi</option>
+          <option value="Ras Al Khaimah">Ras Al Khaimah</option>
+        </select>
 
         {/* Max Price Quick Filter */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.04)', padding: '6px 14px', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Max:</span>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--gold-light)', minWidth: '100px' }}>
-            {filters.maxPrice >= 100000000 ? 'Any Budget' : formatPrice(filters.maxPrice, currency)}
+        <label
+          className={`control ${filters.maxPrice < ANY_BUDGET ? 'is-active' : ''}`}
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'default' }}
+        >
+          <span style={{ fontSize: '12px' }}>Budget</span>
+          <span className="tabular-nums" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--gold-light)', minWidth: '96px' }}>
+            {filters.maxPrice >= ANY_BUDGET ? 'Any' : `Up to ${formatPrice(filters.maxPrice, currency)}`}
           </span>
           <input
             type="range"
+            aria-label="Maximum budget"
             min={1500000}
-            max={100000000}
+            max={ANY_BUDGET}
             step={1000000}
             value={filters.maxPrice}
             onChange={(e) => setFilters(prev => ({ ...prev, maxPrice: Number(e.target.value) }))}
-            style={{ width: '90px', accentColor: '#c5a059', cursor: 'pointer' }}
+            style={{ width: '96px', accentColor: '#c5a059', cursor: 'pointer' }}
           />
+        </label>
+
+        <span aria-hidden="true" className="hide-sm" style={{ width: 1, height: 24, background: 'var(--border-light)', margin: '0 4px' }} />
+
+        {/* Curated collections */}
+        <div className="chip-row" role="group" aria-label="Curated collections">
+          {quickTags.map(({ label, value, icon: Icon }) => (
+            <button
+              key={value}
+              onClick={() => setFilters(prev => ({ ...prev, quickTag: value }))}
+              className={`chip ${filters.quickTag === value ? 'is-active' : ''}`}
+              aria-pressed={filters.quickTag === value}
+            >
+              <Icon size={13} />
+              {label}
+            </button>
+          ))}
         </div>
 
-        {/* Reset Button */}
-        {(filters.search || filters.developer || filters.status || filters.region || filters.maxPrice < 100000000 || filters.quickTag) && (
+        {hasActiveFilters && (
           <button
             onClick={handleReset}
             className="btn-secondary"
-            style={{ padding: '8px 12px', fontSize: '12px' }}
-            title="Reset Filters"
+            style={{ padding: '0 14px', height: '40px', fontSize: '12px', flexShrink: 0 }}
           >
             <RotateCcw size={13} /> Reset
           </button>
         )}
-
-        {/* Count Counter */}
-        <div style={{ marginLeft: 'auto', fontSize: '13px', color: 'var(--text-muted)' }}>
-          Showing <strong style={{ color: 'var(--gold-light)' }}>{totalCount}</strong> luxury assets
-        </div>
-      </div>
-
-      {/* Bottom Row: Luxury Category Chips */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
-        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
-          CURATED COLLECTIONS:
-        </span>
-        {quickTags.map((tag) => (
-          <button
-            key={tag.value}
-            onClick={() => setFilters(prev => ({ ...prev, quickTag: tag.value }))}
-            style={{
-              background: filters.quickTag === tag.value ? 'var(--gold-subtle)' : 'rgba(255,255,255,0.03)',
-              color: filters.quickTag === tag.value ? 'var(--gold-light)' : 'var(--text-muted)',
-              border: `1px solid ${filters.quickTag === tag.value ? 'var(--border-gold-bright)' : 'var(--border-light)'}`,
-              borderRadius: '20px',
-              padding: '4px 12px',
-              fontSize: '11px',
-              fontWeight: filters.quickTag === tag.value ? 700 : 500,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              transition: 'var(--transition-smooth)'
-            }}
-          >
-            {tag.label}
-          </button>
-        ))}
       </div>
     </div>
   );

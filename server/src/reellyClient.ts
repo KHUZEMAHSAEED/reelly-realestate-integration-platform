@@ -28,10 +28,12 @@ export class ReellyClient {
   private apiKey: string | null;
   private cache = new Map<string, CacheEntry<any>>();
 
-  constructor() {
-    const rawUrl = process.env.REELYY_API_BASE_URL || 'https://api-reelly.up.railway.app/api/v2/clients';
+  // Config is injectable so the same client runs in Node (process.env) and Cloudflare Workers (env bindings)
+  constructor(config: { apiKey?: string | null; baseUrl?: string } = {}) {
+    const env = typeof process !== 'undefined' ? process.env : {};
+    const rawUrl = config.baseUrl || env.REELYY_API_BASE_URL || 'https://api-reelly.up.railway.app/api/v2/clients';
     this.baseUrl = this.sanitizeBaseUrl(rawUrl);
-    this.apiKey = process.env.REELYY_API_KEY || null;
+    this.apiKey = (config.apiKey ?? env.REELYY_API_KEY) || null;
   }
 
   private sanitizeBaseUrl(url: string): string {

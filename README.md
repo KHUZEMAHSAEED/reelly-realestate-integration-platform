@@ -86,6 +86,45 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
+## ☁️ Deploy to Cloudflare Pages (client showcase)
+
+The `client/` folder deploys as a Cloudflare Pages project. A Pages Function (`client/functions/api/[[path]].ts`) reuses the same `ReellyClient` as the Node BFF to serve the **live Reelly catalog**, with the API key kept server-side as an encrypted secret. The Bitrix24 CRM workspace runs in-browser on that deploy (Workers keep no state between requests), seeded with the sample deals from `server/src/mockData.ts`.
+
+| Data source available | What visitors see |
+|---|---|
+| `REELLY_API_KEY` secret set | Live Reelly inventory + in-browser CRM demo |
+| No secret | Curated sample catalog (5 projects) + in-browser CRM demo |
+| `npm run build:demo` | Fully static, no Functions needed |
+
+### Option A — Git integration (recommended)
+1. Push this repo to GitHub/GitLab.
+2. Cloudflare Dashboard → **Workers & Pages → Create → Pages → Connect to Git**.
+3. Build settings:
+   - **Root directory:** `client`
+   - **Build command:** `npm run build`
+   - **Build output directory:** `dist`
+   - Node version is pinned by `client/.node-version` (22).
+4. **Settings → Variables and Secrets → Add** `REELLY_API_KEY` (type *Secret*) for Production and Preview, then redeploy.
+
+### Option B — Direct upload from your machine
+```bash
+cd client
+npx wrangler login
+npx wrangler pages project create reelly-luxe
+npx wrangler pages secret put REELLY_API_KEY --project-name reelly-luxe
+npm run pages:deploy
+```
+
+### Test the Cloudflare build locally
+Put `REELLY_API_KEY=...` in `client/.dev.vars` (gitignored), then:
+```bash
+cd client && npm run pages:dev
+```
+
+> Bitrix24 embedding: `client/public/_headers` allows framing from `*.bitrix24.*`. Open `https://<your-project>.pages.dev/?mode=bitrix&dealId=101` to land in CRM mode.
+
+---
+
 ## 🔌 API Endpoints Summary
 
 | Endpoint | Method | Description |

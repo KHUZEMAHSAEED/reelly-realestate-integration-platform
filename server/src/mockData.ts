@@ -1,4 +1,4 @@
-import { ReellyProject, ReellyDeveloper, ReellyProjectMarker } from './types.js';
+import type { ReellyProject, ReellyDeveloper, ReellyProjectMarker, BitrixDealContext } from './types.js';
 
 export const MOCK_DEVELOPERS: ReellyDeveloper[] = [
   {
@@ -291,3 +291,58 @@ export const MOCK_UNIT_TYPES = [
   'Townhouse',
   'Villa'
 ];
+
+// Simulated Bitrix24 deals database (shared by the Express BFF and the static demo build)
+export const MOCK_BITRIX_DEALS: Record<string, BitrixDealContext & { attachedProjects?: any[]; activityLog?: any[] }> = {
+  '101': {
+    deal_id: '101',
+    title: 'Sheikh Mohammed Al-Qasimi - Waterfront Penthouse Acquisition',
+    opportunity: 35000000,
+    currency: 'AED',
+    stage_id: 'PREPARATION_PROPOSAL',
+    location_preference: 'Dubai Harbour / Jumeirah Bay',
+    bedrooms_preference: 4,
+    contact_name: 'Sheikh Mohammed Al-Qasimi',
+    contact_phone: '+971 50 882 1990',
+    contact_email: 'office@alqasimi-holdings.ae',
+    assigned_agent_name: 'Rashid Khan (Private Client Advisor)',
+    attachedProjects: [],
+    activityLog: [
+      { id: 'act-1', date: new Date().toISOString(), type: 'NOTE', text: 'Client requested ultra-high floor with sea or marina views and private elevator access.' }
+    ]
+  },
+  '102': {
+    deal_id: '102',
+    title: 'Dr. Sarah Al-Mansoor - High-Yield Creek Harbour Portfolios',
+    opportunity: 7000000,
+    currency: 'AED',
+    stage_id: 'UNIT_SELECTION',
+    location_preference: 'Dubai Creek Harbour',
+    bedrooms_preference: 2,
+    contact_name: 'Dr. Sarah Al-Mansoor',
+    contact_phone: '+971 55 412 8831',
+    contact_email: 'sarah.mansoor@meduae.org',
+    assigned_agent_name: 'Elena Rostova (Senior Investment Consultant)',
+    attachedProjects: [],
+    activityLog: [
+      { id: 'act-2', date: new Date().toISOString(), type: 'NOTE', text: 'Targeting minimum 7.5% net expected ROI with flexible post-handover payment plan.' }
+    ]
+  },
+  '103': {
+    deal_id: '103',
+    title: 'Alexander Petrov - Branded Bugatti / Downtown Trophy Asset',
+    opportunity: 45000000,
+    currency: 'AED',
+    stage_id: 'VIP_PRESENTATION',
+    location_preference: 'Business Bay / Downtown Dubai',
+    bedrooms_preference: 3,
+    contact_name: 'Alexander Petrov',
+    contact_phone: '+971 52 911 3400',
+    contact_email: 'alexander.p@globalcapital.ch',
+    assigned_agent_name: 'Tariq Al-Hashemi (Managing Director)',
+    attachedProjects: [],
+    activityLog: [
+      { id: 'act-3', date: new Date().toISOString(), type: 'NOTE', text: 'Interested in automotive branded residences with private vehicular lifts.' }
+    ]
+  }
+};

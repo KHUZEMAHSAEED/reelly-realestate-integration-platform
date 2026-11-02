@@ -30,9 +30,15 @@ interface ProjectModalProps {
   isAttached: boolean;
 }
 
-export const ProjectModal: React.FC<ProjectModalProps> = ({
+// Early return lives here so the content component's hooks always run in the same order;
+// keying by project also resets gallery/notes state when a different dossier opens.
+export const ProjectModal: React.FC<ProjectModalProps> = (props) => {
+  if (!props.isOpen || !props.project) return null;
+  return <ProjectModalContent key={props.project.id} {...props} project={props.project} />;
+};
+
+const ProjectModalContent: React.FC<ProjectModalProps & { project: ReellyProject }> = ({
   project,
-  isOpen,
   onClose,
   currency,
   appMode,
@@ -41,8 +47,6 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
   onSendProposal,
   isAttached
 }) => {
-  if (!isOpen || !project) return null;
-
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
   const [selectedUnit, setSelectedUnit] = useState<ReellyUnitType | null>(null);
   const [brokerNotes, setBrokerNotes] = useState('');
@@ -343,7 +347,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
             <div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Floors</div>
               <div style={{ fontSize: '16px', fontWeight: 600, color: '#fff', marginTop: '4px' }}>
-                {project.floors || 50} Levels
+                {project.floors ? `${project.floors} ${project.floors === 1 ? 'Level' : 'Levels'}` : 'TBA'}
               </div>
             </div>
           </div>
@@ -406,9 +410,21 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
             <h3 className="font-serif" style={{ fontSize: '20px', color: '#fff', marginBottom: '12px' }}>
               Architectural Vision & Overview
             </h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '15px', lineHeight: '1.7' }}>
-              {project.overview}
-            </p>
+            {/* Reelly overviews are light markdown: "#" headings + blank-line paragraphs */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '72ch' }}>
+              {(project.overview || '').split(/\n\s*\n/).map(block => block.trim()).filter(Boolean).map((block, i) => {
+                const heading = block.match(/^#{1,6}\s+(.*)$/);
+                return heading ? (
+                  <h4 key={i} className="eyebrow" style={{ color: 'var(--gold-light)', marginTop: i ? '8px' : 0 }}>
+                    {heading[1]}
+                  </h4>
+                ) : (
+                  <p key={i} style={{ color: 'var(--text-muted)', fontSize: '15px', lineHeight: '1.75', whiteSpace: 'pre-line' }}>
+                    {block.replace(/\*\*(.*?)\*\*/g, '$1')}
+                  </p>
+                );
+              })}
+            </div>
           </div>
 
           {/* Amenities Grid */}

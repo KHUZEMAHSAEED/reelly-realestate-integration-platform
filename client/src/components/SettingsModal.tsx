@@ -15,14 +15,15 @@ interface SettingsModalProps {
   onStatusUpdated: () => void;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({
-  isOpen,
+// Early return lives in the wrapper so the content's hooks run unconditionally
+export const SettingsModal: React.FC<SettingsModalProps> = (props) =>
+  props.isOpen ? <SettingsModalContent {...props} /> : null;
+
+const SettingsModalContent: React.FC<SettingsModalProps> = ({
   onClose,
   apiKeyStatus,
   onStatusUpdated
 }) => {
-  if (!isOpen) return null;
-
   const [inputKey, setInputKey] = useState('');
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
