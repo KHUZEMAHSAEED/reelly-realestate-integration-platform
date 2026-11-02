@@ -8,9 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "build:demo": "tsc -b && vite build --mode demo",
-    "pages:dev": "npm run build && npx wrangler pages dev",
-    "pages:deploy": "npm run build && npx wrangler pages deploy"
+    "build:demo": "tsc -b && vite build --mode demo"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.22",

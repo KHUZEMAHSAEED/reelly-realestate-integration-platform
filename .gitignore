@@ -46,6 +46,5 @@ Thumbs.db
 *.tmp
 .eslintcache
 
-# Cloudflare local secrets
-.dev.vars
-.wrangler/
+# Local deploy secrets / CLI state
+.vercel/

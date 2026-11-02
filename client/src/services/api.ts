@@ -139,7 +139,7 @@ const liveApi = {
   }
 };
 
-// Backend resolution: the Express BFF serves everything; the Cloudflare Pages Function serves the
+// Backend resolution: the Express BFF serves everything; the Vercel function (api/router.ts) serves the
 // catalog only (capabilities.crm === false), so Bitrix CRM calls run in-browser; with no backend at all
 // (or VITE_DEMO_MODE=true) the whole app runs on the bundled sample catalog.
 type Backend = typeof liveApi;

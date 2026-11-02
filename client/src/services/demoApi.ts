@@ -1,4 +1,4 @@
-// In-browser backend used when the Express BFF is not reachable (e.g. static Cloudflare Pages deploys).
+// In-browser backend used when the Express BFF is not reachable (e.g. static-only hosting).
 // Mirrors the BFF's REST behaviour over the same curated catalog the server falls back to.
 import {
   MOCK_PROJECTS,

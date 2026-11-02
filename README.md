@@ -86,42 +86,27 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
-## ☁️ Deploy to Cloudflare Pages (client showcase)
+## ▲ Deploy to Vercel (client showcase)
 
-The `client/` folder deploys as a Cloudflare Pages project. A Pages Function (`client/functions/api/[[path]].ts`) reuses the same `ReellyClient` as the Node BFF to serve the **live Reelly catalog**, with the API key kept server-side as an encrypted secret. The Bitrix24 CRM workspace runs in-browser on that deploy (Workers keep no state between requests), seeded with the sample deals from `server/src/mockData.ts`.
+`vercel.json` at the repo root configures everything. The React portal is served from `client/dist`, and the Vercel Function `api/router.ts` reuses the same `ReellyClient` as the Node BFF to serve the **live Reelly catalog**. The API key stays server-side in an environment variable. The Bitrix24 CRM workspace runs in-browser on Vercel (serverless instances share no state), seeded with the sample deals from `server/src/mockData.ts`.
 
-| Data source available | What visitors see |
+| Configuration | What visitors see |
 |---|---|
-| `REELLY_API_KEY` secret set | Live Reelly inventory + in-browser CRM demo |
-| No secret | Curated sample catalog (5 projects) + in-browser CRM demo |
-| `npm run build:demo` | Fully static, no Functions needed |
+| `REELLY_API_KEY` set | Live Reelly inventory + in-browser CRM demo |
+| No key | Curated sample catalog (5 projects) + in-browser CRM demo |
 
-### Option A — Git integration (recommended)
-1. Push this repo to GitHub/GitLab.
-2. Cloudflare Dashboard → **Workers & Pages → Create → Pages → Connect to Git**.
-3. Build settings:
-   - **Root directory:** `client`
-   - **Build command:** `npm run build`
-   - **Build output directory:** `dist`
-   - Node version is pinned by `client/.node-version` (22).
-4. **Settings → Variables and Secrets → Add** `REELLY_API_KEY` (type *Secret*) for Production and Preview, then redeploy.
+### Connect the repository
+1. [vercel.com/new](https://vercel.com/new) → **Import** this GitHub repository.
+2. **Root Directory:** leave as the repository root (`./`). **Framework Preset:** *Other*. Build, install and output settings come from `vercel.json`, so leave those overrides off.
+3. **Environment Variables:** add `REELLY_API_KEY` (Production and Preview).
+4. **Deploy.** Every push to `main` redeploys production; other branches get preview URLs.
 
-### Option B — Direct upload from your machine
-```bash
-cd client
-npx wrangler login
-npx wrangler pages project create reelly-luxe
-npx wrangler pages secret put REELLY_API_KEY --project-name reelly-luxe
-npm run pages:deploy
-```
+### Check the deployment
+- `https://<project>.vercel.app/api/health` → `"Reelly Luxe catalog gateway (Vercel)"`
+- `https://<project>.vercel.app/` → "48 Residences" with a green **Reelly v2: Live** badge
+- `https://<project>.vercel.app/?mode=bitrix&dealId=101` → Bitrix24 CRM mode
 
-### Test the Cloudflare build locally
-Put `REELLY_API_KEY=...` in `client/.dev.vars` (gitignored), then:
-```bash
-cd client && npm run pages:dev
-```
-
-> Bitrix24 embedding: `client/public/_headers` allows framing from `*.bitrix24.*`. Open `https://<your-project>.pages.dev/?mode=bitrix&dealId=101` to land in CRM mode.
+> Bitrix24 embedding: `vercel.json` sends `frame-ancestors` allowing `*.bitrix24.*`, so the portal can be loaded inside Bitrix24 deal tabs.
 
 ---
 

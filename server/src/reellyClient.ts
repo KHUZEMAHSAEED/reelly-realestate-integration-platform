@@ -28,7 +28,7 @@ export class ReellyClient {
   private apiKey: string | null;
   private cache = new Map<string, CacheEntry<any>>();
 
-  // Config is injectable so the same client runs in Node (process.env) and Cloudflare Workers (env bindings)
+  // Config is injectable so the same client runs in the Express BFF and the Vercel function
   constructor(config: { apiKey?: string | null; baseUrl?: string } = {}) {
     const env = typeof process !== 'undefined' ? process.env : {};
     const rawUrl = config.baseUrl || env.REELYY_API_BASE_URL || 'https://api-reelly.up.railway.app/api/v2/clients';
